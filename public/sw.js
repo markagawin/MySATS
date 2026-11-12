@@ -5,7 +5,12 @@ const CACHE_NAME = 'mysats-cache-v1';
 const APP_SHELL_URL = self.registration.scope;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.add(APP_SHELL_URL)).catch(() => {}));
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.add(new Request(APP_SHELL_URL, { cache: 'reload' })))
+      .catch(() => {})
+  );
   self.skipWaiting();
 });
 
@@ -21,8 +26,17 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // GitHub Pages sends Cache-Control: max-age=600, so a plain fetch of the page could return
+  // an HTML copy up to 10 minutes old that still points at the previous build's bundle. Page
+  // loads always revalidate with the server instead. Bundles have a content hash in their
+  // filename, so they can't go stale and use the normal cache.
+  const request =
+    event.request.mode === 'navigate'
+      ? new Request(event.request.url, { cache: 'no-cache', credentials: 'same-origin' })
+      : event.request;
+
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
