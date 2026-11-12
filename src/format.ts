@@ -54,7 +54,8 @@ export function formatAmountAlt(sats: number, unit: AmountUnit): string {
 
 export function formatPct(pct: number, signed = true): string {
   const s = `${Math.abs(pct).toFixed(2)}%`;
-  if (!signed) return s;
+  // Anything that rounds to 0.00% shows no sign, never "-0.00%".
+  if (!signed || s === '0.00%') return s;
   return pct > 0 ? `+${s}` : pct < 0 ? `-${s}` : s;
 }
 

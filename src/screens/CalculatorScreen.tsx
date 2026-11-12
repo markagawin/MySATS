@@ -119,6 +119,17 @@ export default function CalculatorScreen() {
               {formatSats(result.sats)}
               {result.buyFeePhp > 0 ? ` · after a ${formatPeso(result.buyFeePhp)} fee` : ''}
             </Text>
+            <View style={s.divider} />
+            <Label>
+              {targetTouched ? `In pesos if you sell at ${formatPesoWhole(target)}` : 'In pesos if you sell at the same price'}
+            </Label>
+            <Text style={s.big} testID="calc-get-php">
+              {formatPeso(result.worthPhp)}
+            </Text>
+            <Text style={[s.muted, gainStyle(result.gainPhp)]}>
+              {formatSignedPeso(result.gainPhp)} ({formatPct(result.gainPct)})
+              {result.buyFeePhp > 0 ? ' · after fees' : ''}
+            </Text>
           </View>
         ) : null}
       </Card>
@@ -182,7 +193,10 @@ export default function CalculatorScreen() {
                   <Text style={s.scenarioPrice}>
                     {formatPesoWhole(sc.targetPricePhp)} <Text style={s.muted}>{sc.label}</Text>
                   </Text>
-                  <Text style={[s.scenarioGain, gainStyle(sc.result.gainPhp)]}>{formatSignedPeso(sc.result.gainPhp)}</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={s.scenarioWorth}>{formatPeso(sc.result.worthPhp)}</Text>
+                    <Text style={[s.scenarioGain, gainStyle(sc.result.gainPhp)]}>{formatSignedPeso(sc.result.gainPhp)}</Text>
+                  </View>
                 </View>
               ))}
             </Card>
@@ -242,7 +256,9 @@ const createStyles = (theme: AppTheme) =>
       borderTopColor: theme.border,
     },
     scenarioPrice: { fontSize: 14, fontWeight: '700', color: theme.text },
-    scenarioGain: { fontSize: 14, fontWeight: '800' },
+    scenarioWorth: { fontSize: 14, fontWeight: '800', color: theme.text },
+    scenarioGain: { fontSize: 12.5, fontWeight: '700', marginTop: 2 },
+    divider: { height: 1, backgroundColor: theme.border, marginVertical: 12 },
     muted: { color: theme.textMuted, fontSize: 14 },
     small: { fontSize: 12.5 },
     pos: { color: theme.success },
