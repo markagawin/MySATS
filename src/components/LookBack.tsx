@@ -8,6 +8,7 @@ import {
   highestPoint,
   impliedBuyPrice,
   LOOKBACK_DAYS,
+  pointDate,
   priceOnDate,
   riseNeededPct,
 } from '../logic/lookback.ts';
@@ -89,6 +90,7 @@ export default function LookBack({ onUseInCalculator }: Props) {
 
   const ranges = known !== 'date' && buyPrice ? datesNearPrice(points, buyPrice, 2) : [];
   const peak = highestPoint(points);
+  const firstDate = points.length ? pointDate(points[0]) : '';
   const position =
     buyPrice && amount > 0 && now > 0
       ? calculateInvestment({ amountPhp: amount, buyPricePhp: buyPrice, targetPricePhp: Math.round(now), feePct: 0 })
@@ -197,9 +199,13 @@ export default function LookBack({ onUseInCalculator }: Props) {
 
           {known !== 'date' ? (
             <View style={s.section}>
-              <Label style={{ marginBottom: 6 }}>When BTC was around that price</Label>
+              <Label style={{ marginBottom: 2 }}>Days BTC was near that price</Label>
+              <Text style={[s.muted, s.small, { marginBottom: 6 }]}>
+                Past 12 months only (since {firstDate ? formatDate(firstDate) : 'a year ago'}).
+              </Text>
               {ranges.length > 0 ? (
-                ranges.map((r) => (
+                <>
+                {ranges.map((r) => (
                   <View key={r.from} style={s.rangeRow}>
                     <Text style={s.rangeDate}>
                       {r.from === r.to ? formatDate(r.from) : `${formatDayShort(r.from)} – ${formatDate(r.to)}`}
@@ -210,11 +216,17 @@ export default function LookBack({ onUseInCalculator }: Props) {
                         : `${formatPesoShort(r.lowPhp)}–${formatPesoShort(r.highPhp)}`}
                     </Text>
                   </View>
-                ))
+                ))}
+                <Text style={[s.muted, s.small, { marginTop: 6 }]}>
+                  {known === 'btc'
+                    ? "These are days the price matched, not proof you bought then. If you bought more than once or over a year ago, your average won't match a real buy date. Your exchange's transaction history has the real dates."
+                    : "These are days the price matched, not proof you bought then. If you bought over a year ago, your exchange's transaction history has the real date."}
+                </Text>
+                </>
               ) : (
                 <Text style={s.muted}>
-                  BTC wasn't within 2% of that price in the past year. You may have bought more than a year ago, or fees
-                  made your loss bigger than the price drop alone.
+                  BTC wasn't within 2% of that price in the past 12 months. You may have bought more than a year ago, bought
+                  more than once, or paid fees that raised your cost. Your exchange's transaction history has the real dates.
                 </Text>
               )}
             </View>
