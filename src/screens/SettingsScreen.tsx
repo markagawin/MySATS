@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Modal, Platform, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Share, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAppData } from '../AppDataContext';
 import { AppTheme, ThemePreference, useTheme, useThemePreference } from '../theme';
 import type { AmountUnit, BackupData } from '../types';
@@ -7,6 +7,7 @@ import { parseBackup } from '../logic/backup.ts';
 import { todayIso } from '../format';
 import ConfirmModal from '../components/ConfirmModal';
 import Toast from '../components/Toast';
+import MeasureFeeModal from '../components/MeasureFeeModal';
 import { noWebOutline } from '../webInputStyle';
 import { Button, Card, Chip, ChipRow, Field, Label, Screen, SectionTitle, Segmented, useStyles } from '../components/ui';
 
@@ -24,6 +25,7 @@ export default function SettingsScreen() {
   const [importError, setImportError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [measuring, setMeasuring] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (m: string) => {
@@ -152,16 +154,36 @@ export default function SettingsScreen() {
 
         <SectionTitle>Where you buy and keep bitcoin</SectionTitle>
         <Card>
-          <ChipRow>
-            {settings.sources.map((src) => (
-              <Chip
-                key={src}
-                label={src}
-                onRemove={() => updateSettings({ sources: settings.sources.filter((x) => x !== src) })}
-              />
-            ))}
-          </ChipRow>
-          <View style={{ height: 12 }} />
+          {settings.sources.map((src) => {
+            const fee = settings.sourceFees[src];
+            return (
+              <View key={src} style={s.sourceRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.switchLabel}>{src}</Text>
+                  <Text style={s.muted}>{fee != null ? `Fee ${fee}%` : 'No fee saved'}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setMeasuring(src)} hitSlop={8} accessibilityRole="button">
+                  <Text style={s.link}>{fee != null ? 'Change fee' : 'Set fee'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    const { [src]: _removed, ...rest } = settings.sourceFees;
+                    updateSettings({ sources: settings.sources.filter((x) => x !== src), sourceFees: rest });
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${src}`}
+                  style={{ marginLeft: 16 }}
+                >
+                  <Text style={s.remove}>×</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+          <Text style={[s.muted, { marginTop: 10, marginBottom: 12, fontSize: 12.5, lineHeight: 18 }]}>
+            Maya, GCash and Coins.ph don't show a separate fee; it's built into their price. "Set fee" measures it from a
+            buy quote.
+          </Text>
           <Field label="Add a place" value={newSource} onChangeText={setNewSource} placeholder="Bybit" />
           <Button label="Add" variant="secondary" onPress={addSource} />
         </Card>
@@ -236,6 +258,7 @@ export default function SettingsScreen() {
           showToast('All data deleted');
         }}
       />
+      <MeasureFeeModal source={measuring} onClose={() => setMeasuring(null)} onSaved={(pct) => showToast(`Fee saved: ${pct}%`)} />
       <Toast visible={!!toast} message={toast ?? ''} />
     </View>
   );
@@ -246,6 +269,9 @@ const createStyles = (theme: AppTheme) =>
     muted: { color: theme.textMuted, fontSize: 13.5 },
     switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     switchLabel: { fontSize: 15, fontWeight: '600', color: theme.text },
+    sourceRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border },
+    link: { color: theme.primary, fontWeight: '700', fontSize: 14 },
+    remove: { color: theme.textMuted, fontSize: 20, fontWeight: '700' },
     error: { color: theme.danger, fontSize: 13, marginTop: 8, fontWeight: '600' },
     backdrop: { flex: 1, backgroundColor: 'rgba(20,17,13,0.45)', justifyContent: 'center', padding: 24 },
     sheet: { backgroundColor: theme.card, borderRadius: 16, padding: 18, maxWidth: 520, width: '100%', alignSelf: 'center' },

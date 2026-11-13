@@ -40,6 +40,12 @@ test('rejects negative amounts and unknown trade types', () => {
   assert.ok('error' in parseBackup(backup({ trades: [{ ...goodTrade, type: 'steal' }] })));
 });
 
+test('keeps valid platform fees and drops bad ones', () => {
+  const r = parseBackup(backup({ settings: { sourceFees: { Maya: 2.4, GCash: 'x', PDAX: 150, 'Coins.ph': 0 } } }));
+  assert.ok('data' in r);
+  assert.deepEqual(r.data.settings.sourceFees, { Maya: 2.4, 'Coins.ph': 0 });
+});
+
 test('drops invalid settings instead of importing them', () => {
   const r = parseBackup(backup({ settings: { unit: 'pesos', defaultFeePct: 500, sources: 'oops' } }));
   assert.ok('data' in r);

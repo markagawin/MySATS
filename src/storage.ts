@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showUsd: false,
   defaultFeePct: 0,
   sources: DEFAULT_SOURCES,
+  sourceFees: {},
 };
 
 async function loadJson<T>(key: string): Promise<T | null> {

@@ -39,6 +39,13 @@ export function parseBackup(json: unknown): { data: BackupData } | { error: stri
   if (typeof s.showUsd === 'boolean') settings.showUsd = s.showUsd;
   if (typeof s.defaultFeePct === 'number' && s.defaultFeePct >= 0 && s.defaultFeePct < 100) settings.defaultFeePct = s.defaultFeePct;
   if (Array.isArray(s.sources) && s.sources.every((x) => typeof x === 'string')) settings.sources = s.sources;
+  if (s.sourceFees && typeof s.sourceFees === 'object' && !Array.isArray(s.sourceFees)) {
+    const fees: Record<string, number> = {};
+    for (const [name, pct] of Object.entries(s.sourceFees)) {
+      if (typeof pct === 'number' && pct >= 0 && pct < 100) fees[name] = pct;
+    }
+    settings.sourceFees = fees;
+  }
 
   return {
     data: {

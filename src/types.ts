@@ -30,6 +30,8 @@ export interface Settings {
   /** Pre-filled fee % in the calculator. */
   defaultFeePct: number;
   sources: string[];
+  /** Fee % per platform (e.g. { Maya: 2.4 }), measured from a buy quote or typed in. */
+  sourceFees: Record<string, number>;
 }
 
 export interface PriceQuote {
