@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { measureFee, roundTripPct } from '../src/logic/fees.ts';
+import { feeBreakdown, measureFee, roundTripPct } from '../src/logic/fees.ts';
 import { calculateInvestment } from '../src/logic/calculator.ts';
 
 test('a quote 2.5% short of market BTC measures as a 2.5% fee', () => {
@@ -37,6 +37,38 @@ test('empty or zero inputs are invalid', () => {
   assert.equal(measureFee(0, 0.0002, 4_500_000).kind, 'invalid');
   assert.equal(measureFee(1_000, NaN, 4_500_000).kind, 'invalid');
   assert.equal(measureFee(1_000, 0.0002, 0).kind, 'invalid');
+});
+
+test('fee breakdown for ₱10,000 at 2.5% and ₱4.5M, sold right away', () => {
+  const b = feeBreakdown(10_000, 2.5, 4_500_000)!;
+  assert.equal(b.buyFeePhp, 250);
+  assert.equal(b.investedPhp, 9_750);
+  assert.equal(b.sats, 216_666);
+  assert.equal(b.sellGrossPhp, 9_749.97);
+  assert.equal(b.sellFeePhp, 243.75);
+  assert.equal(b.receivePhp, 9_506.22);
+  assert.equal(b.totalFeesPhp, 493.75);
+  assert.equal(b.totalFeesPct.toFixed(2), '4.94');
+  assert.equal(b.breakEvenPricePhp, 4_733_743);
+  assert.equal(b.riseToCoverPct.toFixed(2), '5.19');
+});
+
+test('fee breakdown with no fee loses only sub-sat rounding and needs ~0% rise', () => {
+  const b = feeBreakdown(10_000, 0, 4_500_000)!;
+  assert.equal(b.totalFeesPhp, 0);
+  assert.ok(b.riseToCoverPct >= 0 && b.riseToCoverPct < 0.001);
+});
+
+test('fee breakdown at a higher sell price charges the sell fee on the bigger amount', () => {
+  const b = feeBreakdown(10_000, 2.5, 4_500_000, 5_400_000)!;
+  assert.equal(b.sellGrossPhp, 11_699.96);
+  assert.equal(b.sellFeePhp, 292.5);
+});
+
+test('fee breakdown is null for invalid input', () => {
+  assert.equal(feeBreakdown(0, 2.5, 4_500_000), null);
+  assert.equal(feeBreakdown(10_000, 100, 4_500_000), null);
+  assert.equal(feeBreakdown(10_000, 2.5, NaN), null);
 });
 
 test('round trip compounds the fee on both sides', () => {

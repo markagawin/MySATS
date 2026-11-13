@@ -24,8 +24,9 @@ import {
 import { Card, Chip, ChipRow, Field, Label, LinkButton, Screen, Segmented, useStyles } from '../components/ui';
 import LookBack from '../components/LookBack';
 import MeasureFeeModal from '../components/MeasureFeeModal';
+import FeeCalculator from '../components/FeeCalculator';
 
-type Mode = 'invest' | 'needed' | 'lookback';
+type Mode = 'invest' | 'needed' | 'lookback' | 'fees';
 
 export default function CalculatorScreen() {
   const s = useStyles(createStyles);
@@ -108,9 +109,10 @@ export default function CalculatorScreen() {
     <Screen title="Calculator">
       <Segmented
         options={[
-          { value: 'invest', label: 'If I invest' },
-          { value: 'needed', label: 'Price needed' },
+          { value: 'invest', label: 'Invest' },
+          { value: 'needed', label: 'Goal' },
           { value: 'lookback', label: 'Look back' },
+          { value: 'fees', label: 'Fees' },
         ]}
         value={mode}
         onChange={setMode}
@@ -378,6 +380,17 @@ export default function CalculatorScreen() {
             </Card>
           ) : null}
         </>
+      ) : mode === 'fees' ? (
+        <FeeCalculator
+          amountPhp={amount}
+          buyPricePhp={buy}
+          feePct={feeError ? NaN : fee}
+          feeSource={feeSource}
+          onPickPlatform={(src, pct) => {
+            setFeeText(String(pct));
+            setFeeSource(src);
+          }}
+        />
       ) : (
         <Card>
           <Field
