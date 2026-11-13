@@ -26,6 +26,7 @@ import {
   todayIso,
 } from '../format';
 import { Button, Card, Field, Label, LinkButton, Segmented, useStyles } from './ui';
+import AverageDown from './AverageDown';
 
 type Known = 'btc' | 'loss' | 'date';
 
@@ -275,6 +276,17 @@ export default function LookBack({ onUseInCalculator }: Props) {
             />
           ) : null}
         </Card>
+      ) : null}
+
+      {historyState === 'ready' && buyPrice && amount > 0 && now > 0 && buyPrice > now ? (
+        <AverageDown
+          position={{
+            // "My BTC" knows the exact holding; the other modes estimate it from cost ÷ buy price.
+            heldBtc: known === 'btc' && btc > 0 ? btc : amount / buyPrice,
+            costPhp: amount,
+            pricePhp: Math.round(now),
+          }}
+        />
       ) : null}
 
       {historyState === 'ready' && peak ? (
