@@ -62,7 +62,9 @@ export async function fetchQuote(timeoutMs = 10_000): Promise<PriceQuote> {
 }
 
 export async function fetchHistory(days: number, timeoutMs = 15_000): Promise<PricePoint[]> {
-  const points = parseMarketChart(await getJson(marketChartUrl(days), timeoutMs));
+  // Keep every daily point for the 1-year range: the calculator's look-back needs the exact
+  // price for any day. Shorter ranges are hourly and get thinned for the chart.
+  const points = parseMarketChart(await getJson(marketChartUrl(days), timeoutMs), days >= 365 ? 400 : 120);
   if (points.length < 2) throw new Error('No price history available');
   return points;
 }

@@ -5,7 +5,8 @@ const TRADES_KEY = '@mysats/trades';
 const SETTINGS_KEY = '@mysats/settings';
 const THEME_PREFERENCE_KEY = '@mysats/themePreference';
 const QUOTE_KEY = '@mysats/quote';
-const historyKey = (days: number) => `@mysats/history/${days}`;
+// v2: the 365-day history keeps all daily points (v1 thinned it to 120, too coarse for date lookups).
+const historyKey = (days: number) => `@mysats/history/v2/${days}`;
 
 export const DEFAULT_SOURCES = ['Coins.ph', 'GCash GCrypto', 'PDAX', 'Maya', 'Binance', 'Cold wallet'];
 

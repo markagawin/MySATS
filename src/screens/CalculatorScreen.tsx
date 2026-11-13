@@ -19,8 +19,9 @@ import {
   parseNumberInput,
 } from '../format';
 import { Card, Chip, ChipRow, Field, Label, LinkButton, Screen, Segmented, useStyles } from '../components/ui';
+import LookBack from '../components/LookBack';
 
-type Mode = 'invest' | 'needed';
+type Mode = 'invest' | 'needed' | 'lookback';
 
 export default function CalculatorScreen() {
   const s = useStyles(createStyles);
@@ -68,11 +69,27 @@ export default function CalculatorScreen() {
         options={[
           { value: 'invest', label: 'If I invest' },
           { value: 'needed', label: 'Price needed' },
+          { value: 'lookback', label: 'Look back' },
         ]}
         value={mode}
         onChange={setMode}
       />
 
+      {mode === 'lookback' ? (
+        <LookBack
+          onUseInCalculator={(amountPhp, buyPricePhp) => {
+            setAmountText(numberToInput(amountPhp));
+            setBuyText(numberToInput(buyPricePhp, 0));
+            setBuyTouched(true);
+            if (quote) {
+              setTargetText(numberToInput(Math.round(quote.php), 0));
+              setTargetTouched(true);
+            }
+            setMode('invest');
+          }}
+        />
+      ) : (
+      <>
       <Card>
         <Field
           label="Amount to invest"
@@ -229,6 +246,8 @@ export default function CalculatorScreen() {
             <Text style={[s.muted, { marginTop: 6 }]}>Enter an amount, a buy price and how much you want to earn.</Text>
           )}
         </Card>
+      )}
+      </>
       )}
 
       <Text style={[s.small, s.muted, { textAlign: 'center' }]}>
