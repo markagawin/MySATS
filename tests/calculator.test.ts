@@ -1,6 +1,45 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildScenarios, calculateInvestment, priceNeededForGain } from '../src/logic/calculator.ts';
+import { buildScenarios, calculateInvestment, calculateWithHoldings, priceNeededForGain } from '../src/logic/calculator.ts';
+
+// The user's Maya holdings: 0.007002941 BTC (700,294 sats) for ₱39,999.99.
+const MAYA = { sats: 700_294, costPhp: 39_999.99 };
+
+test('current holdings + ₱40,000 at ₱4.5M, valued at ₱5.5M', () => {
+  const r = calculateWithHoldings({ amountPhp: 40_000, buyPricePhp: 4_500_000, targetPricePhp: 5_500_000, feePct: 0 }, MAYA);
+  assert.ok(r);
+  assert.equal(r.newSats, 888_888);
+  assert.equal(r.totalSats, 1_589_182);
+  assert.equal(r.totalCostPhp, 79_999.99);
+  assert.equal(r.worthPhp, 87_405.01);
+  assert.equal(r.gainPhp, 7_405.02);
+  assert.equal(r.breakEvenPricePhp, 5_034_036); // exact 5,034,035.75, rounded up
+});
+
+test('selling everything at the break-even price gets your money back', () => {
+  const input = { amountPhp: 40_000, buyPricePhp: 4_500_000, targetPricePhp: 0, feePct: 1 };
+  const be = calculateWithHoldings({ ...input, targetPricePhp: 5_500_000 }, MAYA)!.breakEvenPricePhp;
+  const atBe = calculateWithHoldings({ ...input, targetPricePhp: be }, MAYA)!;
+  assert.ok(atBe.gainPhp >= -0.02 && atBe.gainPhp < 1, `gain at break-even ${atBe.gainPhp}`);
+});
+
+test('amount 0 values only what you already have', () => {
+  const r = calculateWithHoldings({ amountPhp: 0, buyPricePhp: NaN, targetPricePhp: 4_500_000, feePct: 0 }, MAYA);
+  assert.ok(r);
+  assert.equal(r.newSats, 0);
+  assert.equal(r.worthPhp, 31_513.23);
+  assert.equal(r.gainPhp, -8_486.76);
+  assert.equal(r.breakEvenPricePhp, 5_711_886); // exact 5,711,885.29, rounded up
+});
+
+test('holdings maths rejects bad holdings or a missing buy price when adding', () => {
+  const ok = { amountPhp: 40_000, buyPricePhp: 4_500_000, targetPricePhp: 5_000_000, feePct: 0 };
+  assert.equal(calculateWithHoldings(ok, { sats: 0, costPhp: 100 }), null);
+  assert.equal(calculateWithHoldings(ok, { sats: 1.5, costPhp: 100 }), null);
+  assert.equal(calculateWithHoldings(ok, { sats: 100, costPhp: -1 }), null);
+  assert.equal(calculateWithHoldings({ ...ok, buyPricePhp: NaN }, MAYA), null);
+  assert.equal(calculateWithHoldings({ ...ok, targetPricePhp: 0 }, MAYA), null);
+});
 
 const SAMPLE_PRICE = 6_000_000;
 

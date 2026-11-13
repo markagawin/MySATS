@@ -85,6 +85,63 @@ export function priceNeededForGain(
   return Math.ceil((neededGrossPhp * SATS_PER_BTC) / base.sats);
 }
 
+/** Bitcoin you already own: from the Log, or typed in from an exchange app. */
+export interface Holdings {
+  sats: number;
+  /** What you paid for it in total. */
+  costPhp: number;
+}
+
+export interface CombinedResult {
+  existingSats: number;
+  /** Sats from the new buy (0 when you're only valuing what you have). */
+  newSats: number;
+  totalSats: number;
+  /** Existing cost + new amount. */
+  totalCostPhp: number;
+  /** Everything sold at the target price, after the sell fee. */
+  worthPhp: number;
+  gainPhp: number;
+  gainPct: number;
+  /** BTC price at which selling everything gets back exactly what you put in (fees included). */
+  breakEvenPricePhp: number;
+}
+
+/**
+ * "I already have this much bitcoin. If I add ₱X at the buy price, what is ALL of it worth at
+ * the target price?" The amount may be 0 to value only what you have. The sell fee applies to
+ * everything sold; the buy fee only to the new pesos. Null when inputs are invalid.
+ */
+export function calculateWithHoldings(input: InvestInput, holdings: Holdings): CombinedResult | null {
+  const { sats: existingSats, costPhp } = holdings;
+  if (!(Number.isInteger(existingSats) && existingSats > 0) || !(costPhp >= 0) || !Number.isFinite(costPhp)) return null;
+  if (!(input.targetPricePhp > 0) || !Number.isFinite(input.targetPricePhp) || !(input.feePct >= 0 && input.feePct < 100)) {
+    return null;
+  }
+
+  const adding = input.amountPhp > 0;
+  const newPart = adding ? calculateInvestment(input) : null;
+  if (adding && !newPart) return null;
+
+  const existingGrossC = toCentavos(satsToPhp(existingSats, input.targetPricePhp));
+  const existingWorthC = existingGrossC - Math.round((existingGrossC * input.feePct) / 100);
+  const worthC = existingWorthC + (newPart ? toCentavos(newPart.worthPhp) : 0);
+  const totalCostC = toCentavos(costPhp) + (newPart ? toCentavos(newPart.amountPhp) : 0);
+  const totalSats = existingSats + (newPart?.sats ?? 0);
+  const gainC = worthC - totalCostC;
+
+  return {
+    existingSats,
+    newSats: newPart?.sats ?? 0,
+    totalSats,
+    totalCostPhp: fromCentavos(totalCostC),
+    worthPhp: fromCentavos(worthC),
+    gainPhp: fromCentavos(gainC),
+    gainPct: totalCostC > 0 ? (gainC / totalCostC) * 100 : 0,
+    breakEvenPricePhp: Math.ceil((fromCentavos(totalCostC) * SATS_PER_BTC) / (totalSats * (1 - input.feePct / 100))),
+  };
+}
+
 export interface Scenario {
   label: string;
   /** Target price ÷ buy price, e.g. 1.25 for +25%. */
